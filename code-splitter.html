@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Divisor de Código</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .input-group {
+            margin-bottom: 30px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #333;
+            font-size: 1.1rem;
+        }
+
+        .file-input {
+            width: 100%;
+            padding: 15px;
+            border: 2px dashed #ddd;
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .file-input:hover {
+            border-color: #4facfe;
+            background: #f0f8ff;
+        }
+
+        .lines-input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .lines-input:focus {
+            outline: none;
+            border-color: #4facfe;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            width: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .results {
+            margin-top: 30px;
+        }
+
+        .part {
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            overflow: hidden;
+            border: 1px solid #e9ecef;
+        }
+
+        .part-header {
+            background: #e9ecef;
+            padding: 15px;
+            font-weight: 600;
+            color: #495057;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .part-content {
+            padding: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            background: white;
+        }
+
+        .copy-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.2s ease;
+        }
+
+        .copy-btn:hover {
+            background: #218838;
+        }
+
+        .copy-btn.copied {
+            background: #17a2b8;
+        }
+
+        .info {
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            color: #1565c0;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📄 Divisor de Código</h1>
+            <p>Divida seus arquivos grandes em partes menores</p>
+        </div>
+        
+        <div class="content">
+            <div class="input-group">
+                <label for="fileInput">Selecione o arquivo:</label>
+                <input type="file" id="fileInput" accept=".txt,.js,.html,.css,.py,.java,.cpp,.c,.php,.rb,.go,.rs,.ts,.jsx,.vue,.svelte" style="display: none;">
+                <div class="file-input" onclick="document.getElementById('fileInput').click()">
+                    <span id="fileLabel">📁 Clique para selecionar arquivo</span>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label for="linesPerPart">Linhas por parte:</label>
+                <input type="number" id="linesPerPart" class="lines-input" value="1000" min="1" placeholder="Ex: 1000">
+            </div>
+
+            <button class="btn" id="splitBtn" onclick="splitFile()">
+                ✂️ Dividir Arquivo
+            </button>
+
+            <div id="results" class="results"></div>
+        </div>
+    </div>
+
+    <script>
+        let fileContent = '';
+        let fileName = '';
+
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                fileName = file.name;
+                document.getElementById('fileLabel').textContent = `📄 ${fileName}`;
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    fileContent = e.target.result;
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        function splitFile() {
+            if (!fileContent) {
+                alert('Por favor, selecione um arquivo primeiro!');
+                return;
+            }
+
+            const linesPerPart = parseInt(document.getElementById('linesPerPart').value);
+            if (!linesPerPart || linesPerPart < 1) {
+                alert('Por favor, insira um número válido de linhas por parte!');
+                return;
+            }
+
+            const lines = fileContent.split('\n');
+            const totalLines = lines.length;
+            const totalParts = Math.ceil(totalLines / linesPerPart);
+
+            let resultsHTML = `
+                <div class="info">
+                    <strong>📊 Informações:</strong><br>
+                    • Arquivo: ${fileName}<br>
+                    • Total de linhas: ${totalLines}<br>
+                    • Linhas por parte: ${linesPerPart}<br>
+                    • Total de partes: ${totalParts}
+                </div>
+            `;
+
+            for (let i = 0; i < totalParts; i++) {
+                const startLine = i * linesPerPart;
+                const endLine = Math.min(startLine + linesPerPart, totalLines);
+                const partLines = lines.slice(startLine, endLine);
+                const partContent = partLines.join('\n');
+
+                resultsHTML += `
+                    <div class="part">
+                        <div class="part-header">
+                            <span>Parte ${i + 1} (Linhas ${startLine + 1} - ${endLine})</span>
+                            <button class="copy-btn" onclick="copyToClipboard(${i}, this)">
+                                📋 Copiar
+                            </button>
+                        </div>
+                        <div class="part-content">
+                            <pre id="part-${i}">${partContent}</pre>
+                        </div>
+                    </div>
+                `;
+            }
+
+            document.getElementById('results').innerHTML = resultsHTML;
+        }
+
+        function copyToClipboard(partIndex, button) {
+            const content = document.getElementById(`part-${partIndex}`).textContent;
+            
+            navigator.clipboard.writeText(content).then(() => {
+                button.textContent = '✅ Copiado!';
+                button.classList.add('copied');
+                
+                setTimeout(() => {
+                    button.textContent = '📋 Copiar';
+                    button.classList.remove('copied');
+                }, 2000);
+            }).catch(() => {
+                // Fallback para navegadores mais antigos
+                const textArea = document.createElement('textarea');
+                textArea.value = content;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                button.textContent = '✅ Copiado!';
+                button.classList.add('copied');
+                
+                setTimeout(() => {
+                    button.textContent = '📋 Copiar';
+                    button.classList.remove('copied');
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>
